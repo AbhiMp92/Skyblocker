@@ -187,7 +187,7 @@ public abstract class ItemStackMixin implements ComponentHolder, SkyblockerStack
 			case "PET" -> {
 				if (customData.contains("petInfo")) {
 					PetInfo petInfo = PetInfo.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString(customData.getString("petInfo"))).getOrThrow();
-					return "LVL_1_" + petInfo.tier() + "_" + petInfo.type();
+					return "LVL_1_" + petInfo.details().getTier() + "_" + petInfo.details().getType();
 				}
 			}
 
@@ -212,10 +212,10 @@ public abstract class ItemStackMixin implements ComponentHolder, SkyblockerStack
 
 			case "ATTRIBUTE_SHARD" -> {
 				if (customData.contains("attributes")) {
-					NbtCompound shards = customData.getCompound("attributes");
-					Optional<String> firstShards = shards.getKeys().stream().findFirst();
-					String shard = firstShards.orElse("");
-					return customDataString + "-" + shard.toUpperCase(Locale.ENGLISH) + "_" + shards.getInt(shard);
+					NbtCompound attributes = customData.getCompound("attributes");
+					Optional<String> firstAttributes = attributes.getKeys().stream().findFirst();
+					String attribute = firstAttributes.orElse("");
+					return attribute.toUpperCase(Locale.ENGLISH) + "_ATTRIBUTE_" + attributes.getInt(attribute);
 				}
 			}
 

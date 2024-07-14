@@ -83,9 +83,9 @@ public class ChatRulesHandler {
 
     private static void registerDefaultChatRules() {
         //clean hub chat
-        ChatRule cleanHubRule = new ChatRule("Clean Hub Chat", false, true, true, true, "(selling)|(buying)|(lowb)|(visit)|(/p)|(/ah)|(my ah)", "hub", true, false, false, "", null);
+        ChatRule cleanHubRule = new ChatRule("Clean Hub Chat", false, true, true, true, "(selling)|(buying)|(lowb)|(visit)|(/p)|(/ah)|(my ah)", "hub", true, false, false, String.valueOf(Optional.of("")), null);
         //mining Ability
-        ChatRule miningAbilityRule = new ChatRule("Mining Ability Alert", false, true, false, true, "is now available!", "Crystal Hollows, Dwarven Mines", false, false, true, "&1Ability", SoundEvents.ENTITY_ARROW_HIT_PLAYER);
+        ChatRule miningAbilityRule = new ChatRule("Mining Ability Alert", false, true, false, true, "is now available!", "Crystal Hollows, Dwarven Mines", false, false, true, String.valueOf(Optional.of("&1Ability")), (SoundEvents.ENTITY_ARROW_HIT_PLAYER));
 
         chatRuleList.add(cleanHubRule);
         chatRuleList.add(miningAbilityRule);

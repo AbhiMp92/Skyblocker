@@ -18,6 +18,7 @@ import de.hysky.skyblocker.skyblock.item.slottext.SlotText;
 import de.hysky.skyblocker.skyblock.item.slottext.SlotTextManager;
 import de.hysky.skyblocker.skyblock.item.tooltip.BackpackPreview;
 import de.hysky.skyblocker.skyblock.item.tooltip.CompactorDeletorPreview;
+import de.hysky.skyblocker.skyblock.item.tooltip.DrawPreviewParameters;
 import de.hysky.skyblocker.skyblock.quicknav.QuickNav;
 import de.hysky.skyblocker.skyblock.quicknav.QuickNavButton;
 import de.hysky.skyblocker.utils.ItemUtils;
@@ -163,7 +164,7 @@ public abstract class HandledScreenMixin<T extends ScreenHandler> extends Screen
 	}
 
 	@SuppressWarnings("DataFlowIssue")
-	// makes intellij be quiet about this.focusedSlot maybe being null. It's already null checked in mixined method.
+// makes intellij be quiet about this.focusedSlot maybe being null. It's already null checked in mixined method.
 	@Inject(method = "drawMouseoverTooltip", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/DrawContext;drawTooltip(Lnet/minecraft/client/font/TextRenderer;Ljava/util/List;Ljava/util/Optional;II)V"), cancellable = true)
 	public void skyblocker$drawMouseOverTooltip(DrawContext context, int x, int y, CallbackInfo ci, @Local(ordinal = 0) ItemStack stack) {
 		if (!Utils.isOnSkyblock()) return;
@@ -182,11 +183,15 @@ public abstract class HandledScreenMixin<T extends ScreenHandler> extends Screen
 		// Compactor Preview
 		if (SkyblockerConfigManager.get().uiAndVisuals.compactorDeletorPreview) {
 			Matcher matcher = CompactorDeletorPreview.NAME.matcher(ItemUtils.getItemId(stack));
-			if (matcher.matches() && CompactorDeletorPreview.drawPreview(context, stack, getTooltipFromItem(stack), matcher.group("type"), matcher.group("size"), x, y)) {
-				ci.cancel();
+			if (matcher.matches()) {
+				DrawPreviewParameters params = new DrawPreviewParameters(context, stack, getTooltipFromItem(stack), matcher.group("type"), matcher.group("size"), x, y);
+				if (CompactorDeletorPreview.drawPreview(params)) {
+					ci.cancel();
+				}
 			}
 		}
 	}
+
 
 	@ModifyVariable(method = "drawMouseoverTooltip", at = @At(value = "LOAD", ordinal = 0))
 	private ItemStack skyblocker$experimentSolvers$replaceTooltipDisplayStack(ItemStack stack) {

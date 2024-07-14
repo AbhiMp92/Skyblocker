@@ -47,8 +47,8 @@ public class ItemCooldowns {
     public static void updateCooldown() {
         PetInfo pet = PetCache.getCurrentPet();
 
-        if (pet != null && pet.tier().equals("LEGENDARY")) {
-            monkeyExp = pet.exp();
+        if (pet != null && pet.details().getTier().equals("LEGENDARY")) {
+            monkeyExp = pet.details().getExp();
 
             monkeyLevel = 0;
             for (int xpLevel : EXPERIENCE_LEVELS) {
@@ -61,6 +61,7 @@ public class ItemCooldowns {
             }
         }
     }
+
 
     private static int getCooldown4Foraging() {
         int baseCooldown = 2000;

@@ -46,8 +46,22 @@ public class ChatRulesConfigListWidget extends ElementListWidget<ChatRulesConfig
     protected void addRuleAfterSelected() {
         hasChanged = true;
         int newIndex = Math.max(children().indexOf(getSelectedOrNull()), 0);
-
-        ChatRulesHandler.chatRuleList.add(newIndex, new ChatRule());
+        ChatRule existingRule = ChatRulesHandler.chatRuleList.get(newIndex);
+        ChatRule newChatRule = new ChatRule(
+                existingRule.getName(),
+                existingRule.getEnabled(),
+                existingRule.getPartialMatch(),
+                existingRule.getRegex(),
+                existingRule.getIgnoreCase(),
+                existingRule.getFilter(),
+                existingRule.getValidLocations(),
+                existingRule.shouldHideMessage(),
+                existingRule.shouldShowActionBar(),
+                existingRule.shouldShowAnnouncement(),
+                existingRule.getReplaceMessageOpt(),
+                existingRule.getCustomSoundOpt()
+        );
+        ChatRulesHandler.chatRuleList.add(newIndex, newChatRule);
         children().add(newIndex + 1, new ChatRuleConfigEntry(newIndex));
     }
 

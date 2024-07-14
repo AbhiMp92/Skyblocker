@@ -16,6 +16,7 @@ import net.minecraft.util.Identifier;
 import java.awt.*;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static java.util.Map.entry;
 
@@ -330,7 +331,7 @@ public class ChatRuleConfigScreen extends Screen {
     private void save() {
         chatRule.setName(nameInput.getText());
         chatRule.setFilter(filterInput.getText());
-        chatRule.setReplaceMessage(replaceMessageInput.getText());
+        chatRule.setReplaceMessage((replaceMessageInput.getText()));
         chatRule.setValidLocations(locationsInput.getText());
 
         ChatRulesHandler.chatRuleList.set(chatRuleIndex, chatRule);

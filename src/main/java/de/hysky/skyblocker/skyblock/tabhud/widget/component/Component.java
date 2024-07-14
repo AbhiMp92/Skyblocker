@@ -9,6 +9,8 @@ import net.minecraft.client.gui.DrawContext;
  */
 public abstract class Component {
 
+    public static final int PADDING_VERTICAL = 4;
+    public static final int PADDING_HORIZONTAL = 8;
     static final int ICO_DIM = 16;
     public static final int PAD_S = 2;
     public static final int PAD_L = 4;

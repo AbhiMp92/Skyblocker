@@ -22,7 +22,7 @@ public class AccessoryTooltip extends TooltipAdder {
 	public void addToTooltip(@Nullable Slot focusedSlot, ItemStack stack, List<Text> lines) {
 		final String internalID = stack.getSkyblockId();
 		if (TooltipInfoType.ACCESSORIES.isTooltipEnabledAndHasOrNullWarning(internalID)) {
-			Pair<AccessoriesHelper.AccessoryReport, String> report = AccessoriesHelper.calculateReport4Accessory(internalID);
+			Pair<AccessoriesHelper.AccessoryReport, String> report = AccessoriesHelper.getReport(internalID);
 
 			if (report.left() != AccessoriesHelper.AccessoryReport.INELIGIBLE) {
 				MutableText title = Text.literal(String.format("%-19s", "Accessory: ")).withColor(0xf57542);

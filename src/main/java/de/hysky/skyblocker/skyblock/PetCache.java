@@ -27,7 +27,7 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * Doesn't work with auto pet right now because thats complicated.
- * 
+ *
  * Want support? Ask the Admins for a Mod API event or open your pets menu.
  */
 public class PetCache {
@@ -112,7 +112,7 @@ public class PetCache {
 				Object2ObjectOpenHashMap<String, PetInfo> playerData = CACHED_PETS.computeIfAbsent(Utils.getUndashedUuid(), _uuid -> new Object2ObjectOpenHashMap<>());
 
 				//Handle deselecting pets
-				if (clicked && getCurrentPet() != null && getCurrentPet().uuid().orElse("").equals(petInfo.uuid().orElse(""))) {
+				if (clicked && getCurrentPet() != null && getCurrentPet().details().getUuid().orElse("").equals(petInfo.details().getUuid().orElse(""))) {
 					playerData.remove(profileId);
 				} else {
 					playerData.put(profileId, petInfo);
@@ -133,17 +133,18 @@ public class PetCache {
 		return CACHED_PETS.containsKey(uuid) && CACHED_PETS.get(uuid).containsKey(profileId) ? CACHED_PETS.get(uuid).get(profileId) : null;
 	}
 
-	public record PetInfo(String type, double exp, String tier, Optional<String> uuid, Optional<String> item, Optional<String> skin) {
+	public record PetInfo(PetDetails details) {
 		public static final Codec<PetInfo> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-				Codec.STRING.fieldOf("type").forGetter(PetInfo::type),
-				Codec.DOUBLE.fieldOf("exp").forGetter(PetInfo::exp),
-				Codec.STRING.fieldOf("tier").forGetter(PetInfo::tier),
-				Codec.STRING.optionalFieldOf("uuid").forGetter(PetInfo::uuid),
-				Codec.STRING.optionalFieldOf("heldItem").forGetter(PetInfo::item),
-				Codec.STRING.optionalFieldOf("skin").forGetter(PetInfo::skin))
-				.apply(instance, PetInfo::new));
+						Codec.STRING.fieldOf("type").forGetter(petInfo -> petInfo.details().getType()),
+						Codec.DOUBLE.fieldOf("exp").forGetter(petInfo -> petInfo.details().getExp()),
+						Codec.STRING.fieldOf("tier").forGetter(petInfo -> petInfo.details().getTier()),
+						Codec.STRING.optionalFieldOf("uuid").forGetter(petInfo -> petInfo.details().getUuid()),
+						Codec.STRING.optionalFieldOf("heldItem").forGetter(petInfo -> petInfo.details().getItem()),
+						Codec.STRING.optionalFieldOf("skin").forGetter(petInfo -> petInfo.details().getSkin()))
+				.apply(instance, (type, exp, tier, uuid, item, skin) -> new PetInfo(new PetDetails(type, exp, tier, uuid, item, skin))));
+
 		private static final Codec<Object2ObjectOpenHashMap<String, Object2ObjectOpenHashMap<String, PetInfo>>> SERIALIZATION_CODEC = Codec.unboundedMap(Codec.STRING,
 				Codec.unboundedMap(Codec.STRING, CODEC).xmap(Object2ObjectOpenHashMap::new, Object2ObjectOpenHashMap::new)
-				).xmap(Object2ObjectOpenHashMap::new, Object2ObjectOpenHashMap::new);
+		).xmap(Object2ObjectOpenHashMap::new, Object2ObjectOpenHashMap::new);
 	}
 }

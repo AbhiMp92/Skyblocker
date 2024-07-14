@@ -1,9 +1,6 @@
 package de.hysky.skyblocker.skyblock.tabhud.widget;
 
-import java.util.ArrayList;
-
 import com.mojang.blaze3d.systems.RenderSystem;
-
 import de.hysky.skyblocker.config.SkyblockerConfigManager;
 import de.hysky.skyblocker.skyblock.tabhud.util.PlayerListMgr;
 import de.hysky.skyblocker.skyblock.tabhud.widget.component.Component;
@@ -17,6 +14,9 @@ import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Abstract base class for a Widget.
  * Widgets are containers for components with a border and a title.
@@ -25,72 +25,25 @@ import net.minecraft.util.Formatting;
  */
 public abstract class Widget {
 
-    private final ArrayList<Component> components = new ArrayList<>();
-    protected int w = 0, h = 0;
+    private final List<Component> components = new ArrayList<>();
+    private int width = 0, height = 0;
     private int x = 0, y = 0;
     private final int color;
     private final Text title;
 
-    private static final TextRenderer txtRend = MinecraftClient.getInstance().textRenderer;
+    private static final TextRenderer textRenderer = MinecraftClient.getInstance().textRenderer;
 
-    static final int BORDER_SZE_N = txtRend.fontHeight + 4;
-    static final int BORDER_SZE_S = 4;
-    static final int BORDER_SZE_W = 4;
-    static final int BORDER_SZE_E = 4;
-    static final int COL_BG_BOX = 0xc00c0c0c;
+    int PADDING_VERTICAL = 4;
+    int PADDING_HORIZONTAL = 8;
+    private static final int BORDER_SIZE_N = textRenderer.fontHeight + 4;
+    private static final int BORDER_SIZE_S = 4;
+    private static final int BORDER_SIZE_W = 4;
+    private static final int BORDER_SIZE_E = 4;
+    private static final int COLOR_BACKGROUND_BOX = 0xc00c0c0c;
 
     public Widget(MutableText title, Integer colorValue) {
         this.title = title;
         this.color = 0xff000000 | colorValue;
-    }
-
-    public final void addComponent(Component c) {
-        this.components.add(c);
-    }
-
-    public final void update() {
-        this.components.clear();
-        this.updateContent();
-        this.pack();
-    }
-
-    public abstract void updateContent();
-
-    /**
-     * Shorthand function for simple components.
-     * If the entry at idx has the format "<textA>: <textB>", an IcoTextComponent is
-     * added as such:
-     * [ico] [string] [textB.formatted(fmt)]
-     */
-    public final void addSimpleIcoText(ItemStack ico, String string, Formatting fmt, int idx) {
-        Text txt = Widget.simpleEntryText(idx, string, fmt);
-        this.addComponent(new IcoTextComponent(ico, txt));
-    }
-
-    public final void addSimpleIcoText(ItemStack ico, String string, Formatting fmt, String content) {
-        Text txt = Widget.simpleEntryText(content, string, fmt);
-        this.addComponent(new IcoTextComponent(ico, txt));
-    }
-
-    /**
-     * Calculate the size of this widget.
-     * <b>Must be called before returning from the widget constructor and after all
-     * components are added!</b>
-     */
-    private void pack() {
-        h = 0;
-        w = 0;
-        for (Component c : components) {
-            h += c.getHeight() + Component.PAD_L;
-            w = Math.max(w, c.getWidth() + Component.PAD_S);
-        }
-
-        h -= Component.PAD_L / 2; // less padding after lowest/last component
-        h += BORDER_SZE_N + BORDER_SZE_S - 2;
-        w += BORDER_SZE_E + BORDER_SZE_W;
-
-        // min width is dependent on title
-        w = Math.max(w, BORDER_SZE_W + BORDER_SZE_E + Widget.txtRend.getWidth(title) + 4 + 4 + 1);
     }
 
     public final int getX() {
@@ -110,19 +63,19 @@ public abstract class Widget {
     }
 
     public final int getWidth() {
-        return this.w;
+        return this.width;
     }
 
     public void setWidth(int width) {
-        this.w = width;
+        this.width = width;
     }
 
     public final int getHeight() {
-        return this.h;
+        return this.height;
     }
 
     public void setHeight(int height) {
-        this.h = height;
+        this.height = height;
     }
 
     public void setDimensions(int size) {
@@ -130,109 +83,132 @@ public abstract class Widget {
     }
 
     public void setDimensions(int width, int height) {
-        this.w = width;
-        this.h = height;
+        this.width = width;
+        this.height = height;
     }
 
-    /**
-     * Draw this widget with a background
-     */
+
+    public final void addComponent(Component component) {
+        this.components.add(component);
+    }
+
+    public final void update() {
+        this.components.clear();
+        this.updateContent();
+        this.pack();
+    }
+
+    public abstract void updateContent();
+
+    public final void addSimpleIcoText(ItemStack ico, String string, Formatting format, int idx) {
+        Text text = Widget.simpleEntryText(idx, string, format);
+        if (text != null) {
+            this.addComponent(new IcoTextComponent(ico, text));
+        }
+    }
+
+    public final void addSimpleIcoText(ItemStack ico, String string, Formatting format, String content) {
+        Text text = Widget.simpleEntryText(content, string, format);
+        if (text != null) {
+            this.addComponent(new IcoTextComponent(ico, text));
+        }
+    }
+
+    private void pack() {
+        int totalHeight = 0;
+        this.width = 0;
+
+        for (Component component : this.components) {
+            totalHeight += component.getHeight() + Component.PADDING_VERTICAL;
+            this.width = Math.max(this.width, component.getWidth() + Component.PADDING_HORIZONTAL);
+        }
+
+        totalHeight -= Component.PADDING_VERTICAL / 2;
+        totalHeight += BORDER_SIZE_N + BORDER_SIZE_S - 2;
+        this.width += BORDER_SIZE_E + BORDER_SIZE_W;
+
+        // Minimum width based on title
+        this.width = Math.max(this.width, BORDER_SIZE_W + BORDER_SIZE_E + textRenderer.getWidth(this.title) + 8);
+
+        this.height = totalHeight;
+    }
+
     public final void render(DrawContext context) {
         this.render(context, true);
     }
 
-    /**
-     * Draw this widget, possibly with a background
-     */
-    public final void render(DrawContext context, boolean hasBG) {
-        MatrixStack ms = context.getMatrices();
+    public final void render(DrawContext context, boolean hasBackground) {
+        MatrixStack matrixStack = context.getMatrices();
 
-        // not sure if this is the way to go, but it fixes Z-layer issues
-        // like blocks being rendered behind the BG and the hotbar clipping into things
         RenderSystem.enableDepthTest();
-        ms.push();
+        matrixStack.push();
 
         float scale = SkyblockerConfigManager.get().uiAndVisuals.tabHud.tabHudScale / 100f;
-        ms.scale(scale, scale, 1);
+        matrixStack.scale(scale, scale, 1);
 
-        // move above other UI elements
-        ms.translate(0, 0, 200);
-        if (hasBG) {
-            context.fill(x + 1, y, x + w - 1, y + h, COL_BG_BOX);
-            context.fill(x, y + 1, x + 1, y + h - 1, COL_BG_BOX);
-            context.fill(x + w - 1, y + 1, x + w, y + h - 1, COL_BG_BOX);
+        matrixStack.translate(0, 0, 200);
+
+        if (hasBackground) {
+            context.fill(x + 1, y, x + width - 1, y + height, COLOR_BACKGROUND_BOX);
+            context.fill(x, y + 1, x + 1, y + height - 1, COLOR_BACKGROUND_BOX);
+            context.fill(x + width - 1, y + 1, x + width, y + height - 1, COLOR_BACKGROUND_BOX);
         }
-        // move above background (if exists)
-        ms.translate(0, 0, 100);
 
-        int strHeightHalf = Widget.txtRend.fontHeight / 2;
-        int strAreaWidth = Widget.txtRend.getWidth(title) + 4;
+        matrixStack.translate(0, 0, 100);
 
-        context.drawText(txtRend, title, x + 8, y + 2, this.color, false);
+        int stringHalfHeight = textRenderer.fontHeight / 2;
+        int stringAreaWidth = textRenderer.getWidth(title) + 4;
 
-        this.drawHLine(context, x + 2, y + 1 + strHeightHalf, 4);
-        this.drawHLine(context, x + 2 + strAreaWidth + 4, y + 1 + strHeightHalf, w - 4 - 4 - strAreaWidth);
-        this.drawHLine(context, x + 2, y + h - 2, w - 4);
+        context.drawText(textRenderer, title, x + 8, y + 2, this.color, false);
 
-        this.drawVLine(context, x + 1, y + 2 + strHeightHalf, h - 4 - strHeightHalf);
-        this.drawVLine(context, x + w - 2, y + 2 + strHeightHalf, h - 4 - strHeightHalf);
+        this.drawHorizontalLine(context, x + 2, y + 1 + stringHalfHeight, 4);
+        this.drawHorizontalLine(context, x + 2 + stringAreaWidth + 4, y + 1 + stringHalfHeight, width - 4 - 4 - stringAreaWidth);
+        this.drawHorizontalLine(context, x + 2, y + height - 2, width - 4);
 
-        int yOffs = y + BORDER_SZE_N;
+        this.drawVerticalLine(context, x + 1, y + 2 + stringHalfHeight, height - 4 - stringHalfHeight);
+        this.drawVerticalLine(context, x + width - 2, y + 2 + stringHalfHeight, height - 4 - stringHalfHeight);
 
-        for (Component c : components) {
-            c.render(context, x + BORDER_SZE_W, yOffs);
-            yOffs += c.getHeight() + Component.PAD_L;
+        int yOffset = y + BORDER_SIZE_N;
+
+        for (Component component : components) {
+            component.render(context, x + BORDER_SIZE_W, yOffset);
+            yOffset += component.getHeight() + Component.PADDING_VERTICAL;
         }
-        // pop manipulations above
-        ms.pop();
+
+        matrixStack.pop();
         RenderSystem.disableDepthTest();
     }
 
-    private void drawHLine(DrawContext context, int xpos, int ypos, int width) {
-        context.fill(xpos, ypos, xpos + width, ypos + 1, this.color);
+    private void drawHorizontalLine(DrawContext context, int xPos, int yPos, int width) {
+        context.fill(xPos, yPos, xPos + width, yPos + 1, this.color);
     }
 
-    private void drawVLine(DrawContext context, int xpos, int ypos, int height) {
-        context.fill(xpos, ypos, xpos + 1, ypos + height, this.color);
+    private void drawVerticalLine(DrawContext context, int xPos, int yPos, int height) {
+        context.fill(xPos, yPos, xPos + 1, yPos + height, this.color);
     }
 
-    /**
-     * If the entry at idx has the format "[textA]: [textB]", the following is
-     * returned:
-     * [entryName] [textB.formatted(contentFmt)]
-     */
-    public static Text simpleEntryText(int idx, String entryName, Formatting contentFmt) {
+    public static Text simpleEntryText(int idx, String entryName, Formatting contentFormat) {
+        String source = PlayerListMgr.strAt(idx);
 
-        String src = PlayerListMgr.strAt(idx);
-
-        if (src == null) {
+        if (source == null || !source.contains(":")) {
             return null;
         }
 
-        int cidx = src.indexOf(':');
-        if (cidx == -1) {
-            return null;
-        }
-
-        src = src.substring(src.indexOf(':') + 1);
-        return Widget.simpleEntryText(src, entryName, contentFmt);
+        String[] parts = source.split(":", 2);
+        String content = parts[1].trim();
+        return Widget.simpleEntryText(content, entryName, contentFormat);
     }
 
-    /**
-     * @return [entryName] [entryContent.formatted(contentFmt)]
-     */
-    public static Text simpleEntryText(String entryContent, String entryName, Formatting contentFmt) {
-        return Text.literal(entryName).append(Text.literal(entryContent).formatted(contentFmt));
+    public static Text simpleEntryText(String entryContent, String entryName, Formatting contentFormat) {
+        String formattedContent = contentFormat.toString() + entryContent;
+        String fullEntry = entryName + formattedContent;
+        return Text.of(fullEntry);
     }
 
-    /**
-     * @return the entry at idx as unformatted Text
-     */
     public static Text plainEntryText(int idx) {
-        String str = PlayerListMgr.strAt(idx);
-        if (str == null) {
-            return null;
-        }
-        return Text.of(str);
+        String source = PlayerListMgr.strAt(idx);
+        return (source != null) ? Text.of(source) : null;
     }
+
+    // Getters and setters for x, y, width, height omitted for brevity
 }

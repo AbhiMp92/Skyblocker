@@ -16,18 +16,18 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
  */
 public class ChatRule {
     private static final Codec<ChatRule> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-            Codec.STRING.fieldOf("name").forGetter(ChatRule::getName),
-            Codec.BOOL.fieldOf("enabled").forGetter(ChatRule::getEnabled),
-            Codec.BOOL.fieldOf("isPartialMatch").forGetter(ChatRule::getPartialMatch),
-            Codec.BOOL.fieldOf("isRegex").forGetter(ChatRule::getRegex),
-            Codec.BOOL.fieldOf("isIgnoreCase").forGetter(ChatRule::getIgnoreCase),
-            Codec.STRING.fieldOf("filter").forGetter(ChatRule::getFilter),
-            Codec.STRING.fieldOf("validLocations").forGetter(ChatRule::getValidLocations),
-            Codec.BOOL.fieldOf("hideMessage").forGetter(ChatRule::getHideMessage),
-            Codec.BOOL.fieldOf("showActionBar").forGetter(ChatRule::getShowActionBar),
-            Codec.BOOL.fieldOf("showAnnouncement").forGetter(ChatRule::getShowAnnouncement),
-            Codec.STRING.optionalFieldOf("replaceMessage").forGetter(ChatRule::getReplaceMessageOpt),
-            SoundEvent.CODEC.optionalFieldOf("customSound").forGetter(ChatRule::getCustomSoundOpt))
+                    Codec.STRING.fieldOf("name").forGetter(ChatRule::getName),
+                    Codec.BOOL.fieldOf("enabled").forGetter(ChatRule::getEnabled),
+                    Codec.BOOL.fieldOf("isPartialMatch").forGetter(ChatRule::getPartialMatch),
+                    Codec.BOOL.fieldOf("isRegex").forGetter(ChatRule::getRegex),
+                    Codec.BOOL.fieldOf("isIgnoreCase").forGetter(ChatRule::getIgnoreCase),
+                    Codec.STRING.fieldOf("filter").forGetter(ChatRule::getFilter),
+                    Codec.STRING.fieldOf("validLocations").forGetter(ChatRule::getValidLocations),
+                    Codec.BOOL.fieldOf("hideMessage").forGetter(ChatRule::getHideMessage),
+                    Codec.BOOL.fieldOf("showActionBar").forGetter(ChatRule::getShowActionBar),
+                    Codec.BOOL.fieldOf("showAnnouncement").forGetter(ChatRule::getShowAnnouncement),
+                    Codec.STRING.fieldOf("replaceMessage").forGetter(ChatRule::getReplaceMessageOpt),
+                    SoundEvent.CODEC.fieldOf("customSound").forGetter(ChatRule::getCustomSoundOpt))
             .apply(instance, ChatRule::new));
     public static final Codec<List<ChatRule>> LIST_CODEC = CODEC.listOf();
 
@@ -47,6 +47,7 @@ public class ChatRule {
     private Boolean showAnnouncement;
     private String replaceMessage;
     private SoundEvent customSound;
+
     /**
      * Creates a chat rule with default options.
      */
@@ -100,6 +101,18 @@ public class ChatRule {
 
     protected void setEnabled(Boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public Boolean shouldShowActionBar() {
+        return showActionBar;
+    }
+
+    public Boolean shouldShowAnnouncement() {
+        return showAnnouncement;
+    }
+
+    public Boolean shouldHideMessage() {
+        return hideMessage;
     }
 
     protected Boolean getPartialMatch() {
@@ -162,20 +175,21 @@ public class ChatRule {
         return replaceMessage;
     }
 
-    private Optional<String> getReplaceMessageOpt() {
-        return replaceMessage == null ? Optional.empty() : Optional.of(replaceMessage);
+    public String getReplaceMessageOpt() {
+        return replaceMessage;
     }
 
-    protected void setReplaceMessage(String replaceMessage) {
+    public void setReplaceMessage(String replaceMessage) {
         this.replaceMessage = replaceMessage;
     }
 
+
     protected SoundEvent getCustomSound() {
-       return customSound;
+        return customSound;
     }
 
-    private Optional<SoundEvent> getCustomSoundOpt() {
-        return customSound == null ? Optional.empty() : Optional.of(customSound);
+   SoundEvent getCustomSoundOpt() {
+        return customSound;
     }
 
     protected void setCustomSound(SoundEvent customSound) {
@@ -215,7 +229,7 @@ public class ChatRule {
         if (testFilter.isBlank()) return false;
         if (isRegex) {
             if (isPartialMatch) {
-               if (!Pattern.compile(testFilter).matcher(testString).find()) return false;
+                if (!Pattern.compile(testFilter).matcher(testString).find()) return false;
             } else {
                 if (!testString.matches(testFilter)) return false;
             }
@@ -257,8 +271,5 @@ public class ChatRule {
         }
 
         return false;
-    }    
+    }
 }
-
-
-

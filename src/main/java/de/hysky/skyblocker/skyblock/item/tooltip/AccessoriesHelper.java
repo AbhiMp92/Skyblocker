@@ -42,14 +42,14 @@ import java.util.stream.Collectors;
 public class AccessoriesHelper {
 	private static final Logger LOGGER = LogUtils.getLogger();
 	private static final Path FILE = SkyblockerMod.CONFIG_DIR.resolve("collected_accessories.json");
-	private static final Pattern ACCESSORY_BAG_TITLE = Pattern.compile("Accessory Bag(?: \\((?<page>\\d+)\\/\\d+\\))?");
+	private static final Pattern BAG_TITLE = Pattern.compile("Accessory Bag(?: \\((?<page>\\d+)\\/\\d+\\))?");
 	//UUID -> Profile Id & Data
-	private static final Object2ObjectOpenHashMap<String, Object2ObjectOpenHashMap<String, ProfileAccessoryData>> COLLECTED_ACCESSORIES = new Object2ObjectOpenHashMap<>();
+	private static final Object2ObjectOpenHashMap<String, Object2ObjectOpenHashMap<String, ProfileAccessoryData>> COLL_ACCESSORIES = new Object2ObjectOpenHashMap<>();
 	private static final Predicate<String> NON_EMPTY = s -> !s.isEmpty();
-	private static final Predicate<Accessory> HAS_FAMILY = Accessory::hasFamily;
-	private static final ToIntFunction<Accessory> ACCESSORY_TIER = Accessory::tier;
+	private static final Predicate<Accessory> HAS_FAM = Accessory::hasFamily;
+	private static final ToIntFunction<Accessory> ACC_TIER = Accessory::tier;
 
-	private static Map<String, Accessory> ACCESSORY_DATA = new Object2ObjectOpenHashMap<>();
+	private static Map<String, Accessory> ACC_DATA = new Object2ObjectOpenHashMap<>();
 	//remove??
 	private static CompletableFuture<Void> loaded;
 
@@ -58,7 +58,7 @@ public class AccessoriesHelper {
 		ClientLifecycleEvents.CLIENT_STOPPING.register((_client) -> save());
 		ScreenEvents.BEFORE_INIT.register((_client, screen, _scaledWidth, _scaledHeight) -> {
 			if (Utils.isOnSkyblock() && TooltipInfoType.ACCESSORIES.isTooltipEnabled() && !Utils.getProfileId().isEmpty() && screen instanceof GenericContainerScreen genericContainerScreen) {
-				Matcher matcher = ACCESSORY_BAG_TITLE.matcher(genericContainerScreen.getTitle().getString());
+				Matcher matcher = BAG_TITLE.matcher(genericContainerScreen.getTitle().getString());
 
 				if (matcher.matches()) {
 					ScreenEvents.afterTick(screen).register(_screen -> {
@@ -76,7 +76,7 @@ public class AccessoriesHelper {
 	private static void load() {
 		loaded = CompletableFuture.runAsync(() -> {
 			try (BufferedReader reader = Files.newBufferedReader(FILE)) {
-				COLLECTED_ACCESSORIES.putAll(ProfileAccessoryData.SERIALIZATION_CODEC.parse(JsonOps.COMPRESSED, JsonParser.parseReader(reader)).getOrThrow());
+				COLL_ACCESSORIES.putAll(ProfileAccessoryData.SERIALIZATION_CODEC.parse(JsonOps.COMPRESSED, JsonParser.parseReader(reader)).getOrThrow());
 			} catch (NoSuchFileException ignored) {
 			} catch (Exception e) {
 				LOGGER.error("[Skyblocker Accessory Helper] Failed to load accessory file!", e);
@@ -86,7 +86,7 @@ public class AccessoriesHelper {
 
 	private static void save() {
 		try (BufferedWriter writer = Files.newBufferedWriter(FILE)) {
-			SkyblockerMod.GSON.toJson(ProfileAccessoryData.SERIALIZATION_CODEC.encodeStart(JsonOps.COMPRESSED, COLLECTED_ACCESSORIES).getOrThrow(), writer);
+			SkyblockerMod.GSON.toJson(ProfileAccessoryData.SERIALIZATION_CODEC.encodeStart(JsonOps.COMPRESSED, COLL_ACCESSORIES).getOrThrow(), writer);
 		} catch (Exception e) {
 			LOGGER.error("[Skyblocker Accessory Helper] Failed to save accessory file!", e);
 		}
@@ -104,70 +104,70 @@ public class AccessoriesHelper {
 
 		String uuid = UndashedUuid.toString(MinecraftClient.getInstance().getSession().getUuidOrNull());
 
-		COLLECTED_ACCESSORIES.computeIfAbsent(uuid, _uuid -> new Object2ObjectOpenHashMap<>()).computeIfAbsent(Utils.getProfileId(), profileId -> ProfileAccessoryData.createDefault()).pages()
+		COLL_ACCESSORIES.computeIfAbsent(uuid, _uuid -> new Object2ObjectOpenHashMap<>()).computeIfAbsent(Utils.getProfileId(), profileId -> ProfileAccessoryData.createDefault()).pages()
 				.put(page, new ObjectOpenHashSet<>(accessoryIds));
 	}
+	public static Pair<AccessoryReport, String> getReport(String accId) {
+		if (!ACC_DATA.containsKey(accId) || Utils.getProfileId().isEmpty()) return Pair.of(AccessoryReport.INELIGIBLE, null);
 
-	public static Pair<AccessoryReport, String> calculateReport4Accessory(String accessoryId) {
-		if (!ACCESSORY_DATA.containsKey(accessoryId) || Utils.getProfileId().isEmpty()) return Pair.of(AccessoryReport.INELIGIBLE, null);
-
-		Accessory accessory = ACCESSORY_DATA.get(accessoryId);
+		Accessory acc = ACC_DATA.get(accId);
 		String uuid = UndashedUuid.toString(MinecraftClient.getInstance().getSession().getUuidOrNull());
-		Set<Accessory> collectedAccessories = COLLECTED_ACCESSORIES.computeIfAbsent(uuid, _uuid -> new Object2ObjectOpenHashMap<>()).computeIfAbsent(Utils.getProfileId(), profileId -> ProfileAccessoryData.createDefault()).pages().values().stream()
+		Set<Accessory> collAcc = COLL_ACCESSORIES.computeIfAbsent(uuid, _uuid -> new Object2ObjectOpenHashMap<>()).computeIfAbsent(Utils.getProfileId(), profileId -> ProfileAccessoryData.createDefault()).pages().values().stream()
 				.flatMap(ObjectOpenHashSet::stream)
-				.filter(ACCESSORY_DATA::containsKey)
-				.map(ACCESSORY_DATA::get)
+				.filter(ACC_DATA::containsKey)
+				.map(ACC_DATA::get)
 				.collect(Collectors.toSet());
 
 		// If the accessory doesn't belong to a family
-		if (accessory.family().isEmpty()) {
+		if (acc.family().isEmpty()) {
 			//If the player has this accessory or player doesn't have this accessory
-			return collectedAccessories.contains(accessory) ? Pair.of(AccessoryReport.HAS_HIGHEST_TIER, null) : Pair.of(AccessoryReport.MISSING, "");
+			return collAcc.contains(acc) ? Pair.of(AccessoryReport.HAS_HIGHEST_TIER, null) : Pair.of(AccessoryReport.MISSING, "");
 		}
 
-		Predicate<Accessory> HAS_SAME_FAMILY = accessory::hasSameFamily;
-		Set<Accessory> collectedAccessoriesInTheSameFamily = collectedAccessories.stream()
-				.filter(HAS_FAMILY)
-				.filter(HAS_SAME_FAMILY)
+		Predicate<Accessory> HAS_SAME_FAM = acc::hasSameFamily;
+		Set<Accessory> collSameFam = collAcc.stream()
+				.filter(HAS_FAM)
+				.filter(HAS_SAME_FAM)
 				.collect(Collectors.toSet());
 
-		Set<Accessory> accessoriesInTheSameFamily = ACCESSORY_DATA.values().stream()
-				.filter(HAS_FAMILY)
-				.filter(HAS_SAME_FAMILY)
+		Set<Accessory> sameFam = ACC_DATA.values().stream()
+				.filter(HAS_FAM)
+				.filter(HAS_SAME_FAM)
 				.collect(Collectors.toSet());
 
-		int highestTierInFamily = accessoriesInTheSameFamily.stream()
-				.mapToInt(ACCESSORY_TIER)
+		int highestTierFam = sameFam.stream()
+				.mapToInt(ACC_TIER)
 				.max()
 				.orElse(0);
 
 		//If the player hasn't collected any accessory in same family
-		if (collectedAccessoriesInTheSameFamily.isEmpty()) return Pair.of(AccessoryReport.MISSING, String.format("(%d/%d)", accessory.tier(), highestTierInFamily));
+		if (collSameFam.isEmpty()) return Pair.of(AccessoryReport.MISSING, String.format("(%d/%d)", acc.tier(), highestTierFam));
 
-		int highestTierCollectedInFamily = collectedAccessoriesInTheSameFamily.stream()
-				.mapToInt(ACCESSORY_TIER)
+		int highestTierColl = collSameFam.stream()
+				.mapToInt(ACC_TIER)
 				.max()
 				.getAsInt();
 
 		//If this accessory is the highest tier, and the player has the highest tier accessory in this family
 		//This accounts for multiple accessories with the highest tier
-		if (accessory.tier() == highestTierInFamily && highestTierCollectedInFamily == highestTierInFamily) return Pair.of(AccessoryReport.HAS_HIGHEST_TIER, null);
+		if (acc.tier() == highestTierFam && highestTierColl == highestTierFam) return Pair.of(AccessoryReport.HAS_HIGHEST_TIER, null);
 
 		//If this accessory is a higher tier than all the other collected accessories in the same family
-		if (accessory.tier() > highestTierCollectedInFamily) return Pair.of(AccessoryReport.IS_GREATER_TIER, String.format("(%d→%d/%d)", highestTierCollectedInFamily, accessory.tier(), highestTierInFamily));
+		if (acc.tier() > highestTierColl) return Pair.of(AccessoryReport.IS_GREATER_TIER, String.format("(%d→%d/%d)", highestTierColl, acc.tier(), highestTierFam));
 
 		//If this accessory is a lower tier than one already obtained from same family
-		if (accessory.tier() < highestTierCollectedInFamily) return Pair.of(AccessoryReport.OWNS_BETTER_TIER, String.format("(%d→%d/%d)", highestTierCollectedInFamily, accessory.tier(), highestTierInFamily));
+		if (acc.tier() < highestTierColl) return Pair.of(AccessoryReport.OWNS_BETTER_TIER, String.format("(%d→%d/%d)", highestTierColl, acc.tier(), highestTierFam));
 
 		//If there is an accessory in the same family that has a higher tier
-		if (accessory.tier() < highestTierInFamily) return Pair.of(AccessoryReport.HAS_GREATER_TIER, String.format("(%d/%d)", highestTierCollectedInFamily, highestTierInFamily));
+		if (acc.tier() < highestTierFam) return Pair.of(AccessoryReport.HAS_GREATER_TIER, String.format("(%d/%d)", highestTierColl, highestTierFam));
 
-		return Pair.of(AccessoryReport.MISSING, String.format("(%d/%d)", accessory.tier(), highestTierInFamily));
+		return Pair.of(AccessoryReport.MISSING, String.format("(%d/%d)", acc.tier(), highestTierFam));
 	}
+
 
 	static void refreshData(JsonObject data) {
 		try {
-			ACCESSORY_DATA = Accessory.MAP_CODEC.parse(JsonOps.INSTANCE, data).getOrThrow();
+			ACC_DATA = Accessory.MAP_CODEC.parse(JsonOps.INSTANCE, data).getOrThrow();
 		} catch (Exception e) {
 			LOGGER.error("[Skyblocker Accessory Helper] Failed to parse data!", e);
 		}

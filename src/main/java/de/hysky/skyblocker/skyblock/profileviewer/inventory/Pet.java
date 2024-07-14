@@ -66,13 +66,13 @@ public class Pet {
     )));
 
     public Pet(PetCache.PetInfo petData) {
-        LevelFinder.LevelInfo info = LevelFinder.getLevelInfo(petData.type().equals("GOLDEN_DRAGON") ? "PET_GREG" : "PET_" + petData.tier(), (long) petData.exp());
-        this.name = petData.type();
-        this.xp = petData.exp();
-        this.heldItem = petData.item();
-        this.skin = petData.skin();
+        LevelFinder.LevelInfo info = LevelFinder.getLevelInfo(petData.details().getType().equals("GOLDEN_DRAGON") ? "PET_GREG" : "PET_" + petData.details().getTier(), (long) petData.details().getExp());
+        this.name = petData.details().getType();
+        this.xp = petData.details().getExp();
+        this.heldItem = petData.details().getItem();
+        this.skin = petData.details().getSkin();
         this.skinTexture = calculateSkinTexture();
-        this.tier = petData.tier();
+        this.tier = petData.details().getTier();
         this.level = info.level;
         this.perecentageToLevel = info.fill;
         this.levelXP = info.levelXP;
