@@ -22,7 +22,7 @@ import java.util.function.Consumer;
 
 public class EditBarWidget extends ContainerWidget {
 
-    private final EnumCyclingOption<StatusBar.IconPosition> iconOption;
+    private final EnumCyclingOption<IconPosition> iconOption;
     private final BooleanOption booleanOption;
 
     private final ColorOption color1;
@@ -41,7 +41,7 @@ public class EditBarWidget extends ContainerWidget {
 
         MutableText translatable = Text.translatable("skyblocker.bars.config.icon");
         contentsWidth = Math.max(contentsWidth, textRenderer.getWidth(translatable) + textRenderer.getWidth("RIGHT") + 10);
-        iconOption = new EnumCyclingOption<>(0, 11, getWidth(), translatable, StatusBar.IconPosition.class);
+        iconOption = new EnumCyclingOption<>(0, 11, getWidth(), translatable, IconPosition.class);
 
         translatable = Text.translatable("skyblocker.bars.config.showValue");
         contentsWidth = Math.max(contentsWidth, textRenderer.getWidth(translatable) + 9 + 10);

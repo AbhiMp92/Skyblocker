@@ -82,7 +82,7 @@ public class FancyStatusBars {
                 for (String s : object.keySet()) {
                     if (statusBars.containsKey(s)) {
                         try {
-                            statusBars.get(s).loadFromJson(object.get(s).getAsJsonObject());
+                            statusBars.get(s).onClick.loadFromJson(object.get(s).getAsJsonObject(), statusBars.get(s));
                         } catch (Exception e) {
                             LOGGER.error("[Skyblocker] Failed to load {} status bar", s, e);
                         }

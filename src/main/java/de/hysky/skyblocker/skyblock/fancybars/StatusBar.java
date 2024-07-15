@@ -8,6 +8,8 @@ import de.hysky.skyblocker.utils.render.RenderHelper;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.*;
+import net.minecraft.client.gui.navigation.GuiNavigation;
+import net.minecraft.client.gui.navigation.GuiNavigationPath;
 import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.client.gui.widget.Widget;
@@ -20,86 +22,23 @@ import java.awt.*;
 import java.util.function.Consumer;
 
 public class StatusBar implements Widget, Drawable, Element, Selectable {
-
-    private static final Identifier BAR_FILL = Identifier.of(SkyblockerMod.NAMESPACE, "bars/bar_fill");
-    private static final Identifier BAR_BACK = Identifier.of(SkyblockerMod.NAMESPACE, "bars/bar_back");
-
-
-   /* public static final Codec<StatusBar> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-                    Codec.INT.fieldOf("size").forGetter(bar -> bar.size),
-                    Codec.INT.fieldOf("x").forGetter(bar -> bar.gridX),
-                    Codec.INT.fieldOf("y").forGetter(bar -> bar.gridY),
-                    Codec.STRING.listOf().fieldOf("colors").xmap(
-                                    strings -> strings.stream().map(s -> Integer.parseInt(s, 16)).map(Color::new).toArray(Color[]::new),
-                                    colors -> Arrays.stream(colors).map(color -> Integer.toHexString(color.getRGB())).toList())
-                            .forGetter(StatusBar::getColors),
-                    Codec.STRING.optionalFieldOf("text_color").xmap(
-                                    s -> {
-                                        if (s.isPresent()) {
-                                            return Optional.of(new Color(Integer.parseInt(s.get(), 16)));
-                                        } else return Optional.empty();
-                                    },
-                                    o -> o.map(object -> Integer.toHexString(((Color) object).getRGB())))
-                            .forGetter(bar -> {
-                                if (bar.getTextColor() != null) {
-                                    return Optional.of(bar.getTextColor());
-                                } else return Optional.empty();
-                            }),
-                    Codec.BOOL.optionalFieldOf("show_text", true).forGetter(StatusBar::showText),
-                    Codec.STRING.fieldOf("icon_position").xmap(
-                            IconPosition::valueOf,
-                            Enum::toString
-                    ).forGetter(bar -> bar.iconPosition)
-            )
-
-            .apply(instance, ));*/
-
     private final Identifier icon;
-
-    public Color[] getColors() {
-        return colors;
-    }
-
-    public boolean hasOverflow() {
-        return hasOverflow;
-    }
-
-    public @Nullable Color getTextColor() {
-        return textColor;
-    }
-
     private Color[] colors;
     private final boolean hasOverflow;
-
-    public void setTextColor(@Nullable Color textColor) {
-        this.textColor = textColor;
-    }
-
     private @Nullable Color textColor;
-
-    public Text getName() {
-        return name;
-    }
-
     private final Text name;
-
-    private @Nullable OnClick onClick = null;
+    @Nullable OnClick onClick = null;
     public int gridX = 0;
     public int gridY = 0;
     public @Nullable BarPositioner.BarAnchor anchor = null;
-
     public int size = 1;
     private int width = 0;
-
     public float fill = 0;
     public float overflowFill = 0;
     public boolean inMouse = false;
-
-    private Object value = "";
-
+    public Object value = "";
     private int x = 0;
     private int y = 0;
-
     private IconPosition iconPosition = IconPosition.LEFT;
     private boolean showText = true;
 
@@ -115,71 +54,34 @@ public class StatusBar implements Widget, Drawable, Element, Selectable {
         this(icon, colors, hasOverflow, textColor, Text.empty());
     }
 
-    @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        if (width <= 0) return;
-        // half works lol. only puts transparency on the filler of the bar
-        if (inMouse) context.setShaderColor(1f, 1f, 1f, 0.25f);
-        switch (iconPosition) {
-            case LEFT -> context.drawGuiTexture(icon, x, y, 9, 9);
-            case RIGHT -> context.drawGuiTexture(icon, x + width - 9, y, 9, 9);
-        }
-
-        int barWith = iconPosition.equals(IconPosition.OFF) ? width : width - 10;
-        int barX = iconPosition.equals(IconPosition.LEFT) ? x + 10 : x;
-        context.drawGuiTexture(BAR_BACK, barX, y + 1, barWith, 7);
-        RenderHelper.renderNineSliceColored(context, BAR_FILL, barX + 1, y + 2, (int) ((barWith - 2) * fill), 5, colors[0]);
-
-
-        if (hasOverflow && overflowFill > 0) {
-            RenderHelper.renderNineSliceColored(context, BAR_FILL, barX + 1, y + 2, (int) ((barWith - 2) * overflowFill), 5, colors[1]);
-        }
-        if (inMouse) context.setShaderColor(1f, 1f, 1f, 1f);
-        //context.drawText(MinecraftClient.getInstance().textRenderer, gridX + " " + gridY + " s:" + size , x, y-9, Colors.WHITE, true);
+    public StatusBar(Identifier icon, Color[] colors, boolean hasOverflow) {
+        this(icon, colors, hasOverflow, null, Text.empty());
     }
 
-    public void updateValues(float fill, float overflowFill, Object text) {
-        this.value = text;
-        this.fill = fill;
-        this.overflowFill = overflowFill;
+    public StatusBar(Identifier icon, Color[] colors) {
+        this(icon, colors, false, null, Text.empty());
+    }
+
+    public StatusBar(Identifier icon, Color[] colors, @Nullable Color textColor) {
+        this(icon, colors, false, textColor, Text.empty());
+    }
+
+    public Identifier getIcon() {
+        return icon;
+    }
+
+    // Getters and setters for the other fields
+
+    @Override
+    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+        StatusBarRenderer.render(this, context, mouseX, mouseY, delta);
     }
 
     public void renderText(DrawContext context) {
-        TextRenderer textRenderer = MinecraftClient.getInstance().textRenderer;
-        int barWith = iconPosition.equals(IconPosition.OFF) ? width : width - 10;
-        int barX = iconPosition.equals(IconPosition.LEFT) ? x + 11 : x;
-        String text = this.value.toString();
-        int x = barX + (barWith - textRenderer.getWidth(text)) / 2;
-        int y = this.y - 3;
-
-        final int[] offsets = new int[]{-1, 1};
-        for (int i : offsets) {
-            context.drawText(textRenderer, text, x + i, y, 0, false);
-            context.drawText(textRenderer, text, x, y + i, 0, false);
+        if (showText) {
+            StatusBarRenderer.renderText(this, context);
         }
-        context.drawText(textRenderer, text, x, y, (textColor == null ? colors[0] : textColor).getRGB(), false);
     }
-
-    public void renderCursor(DrawContext context, int mouseX, int mouseY, float delta) {
-        int temp_x = x;
-        int temp_y = y;
-        int temp_width = width;
-        boolean temp_ghost = inMouse;
-
-        x = mouseX;
-        y = mouseY;
-        width = 100;
-        inMouse = false;
-
-        render(context, mouseX, mouseY, delta);
-
-        x = temp_x;
-        y = temp_y;
-        width = temp_width;
-        inMouse = temp_ghost;
-    }
-
-    // GUI shenanigans
 
     @Override
     public void setX(int x) {
@@ -201,41 +103,77 @@ public class StatusBar implements Widget, Drawable, Element, Selectable {
         return y;
     }
 
-    @Override
-    public int getWidth() {
-        return width;
-    }
-
-    public void setWidth(int width) {
-        this.width = width;
+    public boolean isInMouse(int mouseX, int mouseY) {
+        return mouseX >= x && mouseY >= y && mouseX < x + width && mouseY < y + 9;
     }
 
     @Override
-    public int getHeight() {
-        return 9;
+    public void mouseMoved(double mouseX, double mouseY) {
+        Element.super.mouseMoved(mouseX, mouseY);
     }
 
     @Override
-    public ScreenRect getNavigationFocus() {
-        return Widget.super.getNavigationFocus();
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (onClick == null || !isInMouse((int) mouseX, (int) mouseY)) return false;
+        onClick.onClick(this, button, (int) mouseX, (int) mouseY);
+        return true;
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        return Element.super.mouseReleased(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
+        return Element.super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        return Element.super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        return Element.super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
+    public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
+        return Element.super.keyReleased(keyCode, scanCode, modifiers);
+    }
+
+    @Override
+    public boolean charTyped(char chr, int modifiers) {
+        return Element.super.charTyped(chr, modifiers);
+    }
+
+    @Nullable
+    @Override
+    public GuiNavigationPath getNavigationPath(GuiNavigation navigation) {
+        return Element.super.getNavigationPath(navigation);
     }
 
     @Override
     public boolean isMouseOver(double mouseX, double mouseY) {
-        return mouseX >= x && mouseX <= x + getWidth() && mouseY >= y && mouseY <= y + getHeight();
-    }
-
-    @Override
-    public void forEachChild(Consumer<ClickableWidget> consumer) {
+        return Element.super.isMouseOver(mouseX, mouseY);
     }
 
     @Override
     public void setFocused(boolean focused) {
+
     }
 
     @Override
     public boolean isFocused() {
         return false;
+    }
+
+    @Nullable
+    @Override
+    public GuiNavigationPath getFocusedPath() {
+        return Element.super.getFocusedPath();
     }
 
     @Override
@@ -244,34 +182,139 @@ public class StatusBar implements Widget, Drawable, Element, Selectable {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (!isMouseOver(mouseX, mouseY)) return false;
-        if (onClick != null) {
-            onClick.onClick(this, button, (int) mouseX, (int) mouseY);
-        }
-        return true;
+    public boolean isNarratable() {
+        return Selectable.super.isNarratable();
     }
+
+    public JsonObject toJson() {
+        return StatusBarConfig.toJson(this);
+    }
+
+    public static void loadFromJson(JsonObject object, StatusBar statusBar) {
+        StatusBarConfig.loadFromJson(object, statusBar);
+    }
+
+    // Getter for anchor
+    public @Nullable BarPositioner.BarAnchor getAnchor() {
+        return anchor;
+    }
+
+    // Other methods to handle the status bar's properties
 
     public void setOnClick(@Nullable OnClick onClick) {
         this.onClick = onClick;
     }
 
-    @Override
-    public void appendNarrations(NarrationMessageBuilder builder) {
+    public int getGridX() {
+        return gridX;
+    }
+
+    public void setGridX(int gridX) {
+        this.gridX = gridX;
+    }
+
+    public int getGridY() {
+        return gridY;
+    }
+
+    public void setGridY(int gridY) {
+        this.gridY = gridY;
+    }
+
+    public void setAnchor(@Nullable BarPositioner.BarAnchor anchor) {
+        this.anchor = anchor;
+    }
+
+    public int getSize() {
+        return size;
+    }
+
+    public void setSize(int size) {
+        this.size = size;
+    }
+
+    public int getWidth() {
+        return width;
     }
 
     @Override
-    public String toString() {
-        return new ToStringBuilder(this)
-                .append("name", name)
-                .append("gridX", gridX)
-                .append("gridY", gridY)
-                .append("size", size)
-                .append("x", x)
-                .append("y", y)
-                .append("width", width)
-                .append("anchor", anchor)
-                .toString();
+    public int getHeight() {
+        return 0;
+    }
+
+    @Override
+    public ScreenRect getNavigationFocus() {
+        return Widget.super.getNavigationFocus();
+    }
+
+    @Override
+    public void setPosition(int x, int y) {
+        Widget.super.setPosition(x, y);
+    }
+
+    @Override
+    public void forEachChild(Consumer<ClickableWidget> consumer) {
+
+    }
+
+    public void setWidth(int width) {
+        this.width = width;
+    }
+
+    public float getFill() {
+        return fill;
+    }
+
+    public void setFill(float fill) {
+        this.fill = fill;
+    }
+
+    public float getOverflowFill() {
+        return overflowFill;
+    }
+
+    public void setOverflowFill(float overflowFill) {
+        this.overflowFill = overflowFill;
+    }
+
+    public boolean isInMouse() {
+        return inMouse;
+    }
+
+    public void setInMouse(boolean inMouse) {
+        this.inMouse = inMouse;
+    }
+
+    public Object getValue() {
+        return value;
+    }
+
+    public void setValue(Object value) {
+        this.value = value;
+    }
+
+    public Color[] getColors() {
+        return colors;
+    }
+
+    public void setColors(Color[] colors) {
+        this.colors = colors;
+    }
+
+    public boolean hasOverflow() {
+        return hasOverflow;
+    }
+
+    public Color getTextColor() {
+        return textColor;
+    }
+
+    public void setTextColor(@Nullable Color textColor) {
+        this.textColor = textColor;
+    }
+
+    public Text getName() {
+        return name;
     }
 
     public IconPosition getIconPosition() {
@@ -290,64 +333,19 @@ public class StatusBar implements Widget, Drawable, Element, Selectable {
         this.showText = showText;
     }
 
-    public enum IconPosition {
-        LEFT,
-        RIGHT,
-        OFF
+    public void updateValues(float fill, float overflowFill, Object text) {
+        this.value = text;
+        this.fill = fill;
+        this.overflowFill = overflowFill;
     }
 
-    @FunctionalInterface
-    public interface OnClick {
-
-        void onClick(StatusBar statusBar, int button, int mouseX, int mouseY);
-    }
-
-    public void loadFromJson(JsonObject object) {
-        // Make colors optional, so it's easy to reset to default
-        if (object.has("colors")) {
-            JsonArray colors1 = object.get("colors").getAsJsonArray();
-            if (colors1.size() < 2 && hasOverflow) {
-                throw new IllegalStateException("Missing second color of bar that has overflow");
-            }
-            Color[] newColors = new Color[colors1.size()];
-            for (int i = 0; i < colors1.size(); i++) {
-                JsonElement jsonElement = colors1.get(i);
-                newColors[i] = new Color(Integer.parseInt(jsonElement.getAsString(), 16));
-            }
-            this.colors = newColors;
-        }
-
-        if (object.has("text_color")) this.textColor = new Color(Integer.parseInt(object.get("text_color").getAsString(), 16));
-
-        String maybeAnchor = object.get("anchor").getAsString().trim();
-        this.anchor = maybeAnchor.equals("null") ? null : BarPositioner.BarAnchor.valueOf(maybeAnchor);
-        this.size = object.get("size").getAsInt();
-        this.gridX = object.get("x").getAsInt();
-        this.gridY = object.get("y").getAsInt();
-        // these are optional too, why not
-        if (object.has("icon_position")) this.iconPosition = IconPosition.valueOf(object.get("icon_position").getAsString().trim());
-        if (object.has("show_text")) this.showText = object.get("show_text").getAsBoolean();
+    @Override
+    public void appendNarrations(NarrationMessageBuilder builder) {
 
     }
 
-    public JsonObject toJson() {
-        JsonObject object = new JsonObject();
-        JsonArray colors1 = new JsonArray();
-        for (Color color : colors) {
-            colors1.add(Integer.toHexString(color.getRGB()).substring(2));
-        }
-        object.add("colors", colors1);
-        if (textColor != null) {
-            object.addProperty("text_color", Integer.toHexString(textColor.getRGB()).substring(2));
-        }
-        object.addProperty("size", size);
-        if (anchor != null) {
-            object.addProperty("anchor", anchor.toString());
-        } else object.addProperty("anchor", "null");
-        object.addProperty("x", gridX);
-        object.addProperty("y", gridY);
-        object.addProperty("icon_position", iconPosition.toString());
-        object.addProperty("show_text", showText);
-        return object;
+    @Override
+    public int getNavigationOrder() {
+        return Element.super.getNavigationOrder();
     }
 }

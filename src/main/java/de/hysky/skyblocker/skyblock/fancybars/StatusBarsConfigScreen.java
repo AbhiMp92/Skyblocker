@@ -63,7 +63,7 @@ public class StatusBarsConfigScreen extends Screen {
         Window window = client.getWindow();
 
         if (cursorBar != null) {
-            cursorBar.renderCursor(context, mouseX, mouseY, delta);
+            cursorBar.onClick.renderCursor(context, mouseX, mouseY, delta, cursorBar);
             boolean inserted = false;
             rectLoop:
             for (ScreenRect screenRect : rectToBarLocation.keySet()) {
